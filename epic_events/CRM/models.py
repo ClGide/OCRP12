@@ -4,6 +4,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.validators import RegexValidator
 from .managers import CustomUserManager
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 
 class Client(models.Model):
@@ -29,6 +31,7 @@ class Client(models.Model):
 
 
 class Contract(models.Model):
+    title = models.CharField(max_length=50)
     signed = models.BooleanField(help_text="tick if the contract is signed")
     amount = models.FloatField()
     payment_due = models.FloatField()
@@ -36,6 +39,11 @@ class Contract(models.Model):
     date_updated = models.DateTimeField(auto_now_add=True)
     sales_contact = models.ForeignKey("CustomUser", on_delete=models.SET_NULL, null=True)
     client = models.ForeignKey("Client", on_delete=models.CASCADE)
+
+    def clean(self):
+        if self.payment_due > self.amount:
+            raise ValidationError("The payment due cannot be superior to the "
+                                  "total amount.")
 
     def __str__(self):
         if self.signed:
@@ -45,8 +53,9 @@ class Contract(models.Model):
 
 
 class Event(models.Model):
+    title = models.CharField(max_length=50)
     status = models.BooleanField(
-        help_text="tick if the Event already took place",
+        help_text="green if the event already took place",
         blank=True,
         default=False,
     )
@@ -59,6 +68,13 @@ class Event(models.Model):
     client = models.ForeignKey("Client", on_delete=models.CASCADE)
     contract = models.ForeignKey("Contract", on_delete=models.CASCADE)
 
+    def save(self, *args, **kwargs):
+        if self.event_date < timezone.now():
+            self.status = True
+        else:
+            self.status = False
+        super(Event, self).save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.client} event's. Date: {self.event_date}"
 
@@ -69,6 +85,7 @@ class CustomUser(AbstractUser):
     last_name = models.CharField(max_length=25)
     email = models.EmailField()
 
+
     USER_TYPE_CHOICES = (
         (1, "manage team"),
         (2, "sales team"),
@@ -76,6 +93,7 @@ class CustomUser(AbstractUser):
     )
     user_type = models.PositiveSmallIntegerField(choices=USER_TYPE_CHOICES)
 
+    USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["first_name", "last_name", "email", "user_type"]
 
     phone_regex = RegexValidator(
@@ -89,6 +107,16 @@ class CustomUser(AbstractUser):
         self.is_staff = True
         if self.user_type == 1:
             self.is_superuser = True
+
+    def __str__(self):
+        return self.username
+
+    def has_perm(self, perm, obj=None):
+        return True
+
+    def has_module_perms(self, app_label):
+        return True
+
 
 
 @receiver(post_save, sender=Event)

@@ -19,6 +19,7 @@ class CustomUserManager(BaseUserManager):
         # phone is an optional arg, I guess it will be passed through **extra_fields
         user = self.model(username=username, first_name=first_name,
                           last_name=last_name, user_type=user_type,
+                          email=self.normalize_email(email),
                           **extra_fields)   # if not passed as kwargs, will complain that we gave id a str (username)
         user.set_password(password)
         user.save()
@@ -30,6 +31,7 @@ class CustomUserManager(BaseUserManager):
             raise ValueError("Superuser must have is_staff=True.")
         # if not passed as kwargs, will complain that we gave id a str (username)
         return self.create_user(username=username, password=password,
-                                email=email, first_name=first_name,
+                                email=self.normalize_email(email),
+                                first_name=first_name,
                                 last_name=last_name, user_type=user_type,
                                 **extra_fields)

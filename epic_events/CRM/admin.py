@@ -1,15 +1,37 @@
 from django.contrib import admin
+from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import Group
 
 from .forms import *
 from .models import *
 
 
 class CustomUserAdmin(UserAdmin):
-    add_form = CustomUserCreationForm
     form = CustomUserChangeForm
-    model = CustomUser
+    add_form = CustomUserCreationForm
+
     list_display = ["email", "username", "user_type"]
+    fieldsets = (
+        (None, {"fields": ("username",
+                           'user_type',)}),
+        ("Personal info", {"fields": ("first_name",
+                                      "last_name",
+                                      "email",
+                                      "phone")}),
+    )
+
+    add_fieldsets = (
+        (None, {"fields": ("username",
+                           "password1",
+                           "password2",
+                           'user_type',)}),
+        ("Personal info", {"fields": ("first_name",
+                                      "last_name",
+                                      "email",
+                                      "phone")}),
+
+    )
 
 
 class ClientAdmin(admin.ModelAdmin):
@@ -17,10 +39,20 @@ class ClientAdmin(admin.ModelAdmin):
     readonly_fields = ["client_status"]
 
 
-admin.site.register(CustomUser, CustomUserAdmin)
+class EventAdmin(admin.ModelAdmin):
+    form = EventForm
+    readonly_fields = ["status"]
+
+
+class ContractAdmin(admin.ModelAdmin):
+    form = ContractForm
+
+
+admin.site.register(get_user_model(), CustomUserAdmin)
 admin.site.register(Client, ClientAdmin)
-admin.site.register(Contract)
-admin.site.register(Event)
+admin.site.register(Contract, ContractAdmin)
+admin.site.register(Event, EventAdmin)
+#admin.site.unregister(Group)
 
 
 
