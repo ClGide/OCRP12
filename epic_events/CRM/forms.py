@@ -41,24 +41,3 @@ class CustomUserChangeForm(UserChangeForm):
                   "last_name", "email", "phone"]
 
 
-class ClientForm(ModelForm):
-
-    class Meta:
-        model = Client
-        fields = "__all__"
-
-
-class ContractForm(ModelForm):
-
-    class Meta:
-        model = Contract
-        fields = "__all__"
-
-
-class EventForm(ModelForm):
-
-    class Meta:
-        model = Event
-        fields = "__all__"
-
-

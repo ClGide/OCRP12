@@ -6,6 +6,7 @@ from django.core.validators import RegexValidator
 from .managers import CustomUserManager
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 
 
 class Client(models.Model):
@@ -24,20 +25,29 @@ class Client(models.Model):
     client_status = models.PositiveSmallIntegerField(choices=CLIENT_STATUS_CHOICES, default=1)
     date_created = models.DateTimeField(auto_now=True)
     date_updated = models.DateTimeField(auto_now_add=True)
-    sales_contact = models.ForeignKey("CustomUser", on_delete=models.SET_NULL, null=True)
+    sales_contact = models.ForeignKey("CustomUser",
+                                      on_delete=models.SET_NULL,
+                                      null=True,
+                                      limit_choices_to=Q(user_type=2))  # type 2 is sales team
+
+    class Meta:
+        unique_together = [['first_name', 'last_name']]
 
     def __str__(self):
-        return f"client {self.first_name} {self.last_name}"
+        return f"{self.first_name} {self.last_name}"
 
 
 class Contract(models.Model):
-    title = models.CharField(max_length=50)
+    title = models.CharField(max_length=50, unique=True)
     signed = models.BooleanField(help_text="tick if the contract is signed")
     amount = models.FloatField()
     payment_due = models.FloatField()
     date_created = models.DateTimeField(auto_now=True)
     date_updated = models.DateTimeField(auto_now_add=True)
-    sales_contact = models.ForeignKey("CustomUser", on_delete=models.SET_NULL, null=True)
+    sales_contact = models.ForeignKey("CustomUser",
+                                      on_delete=models.SET_NULL,
+                                      null=True,
+                                      limit_choices_to=Q(user_type=2))  # type 2 is sales team
     client = models.ForeignKey("Client", on_delete=models.CASCADE)
 
     def clean(self):
@@ -46,14 +56,11 @@ class Contract(models.Model):
                                   "total amount.")
 
     def __str__(self):
-        if self.signed:
-            return f"{self.client} contract's signed with {self.sales_contact} for {self.amount}"
-        else:
-            return f"{self.client} contract's to be signed with {self.sales_contact} for {self.amount}"
+        return self.title
 
 
 class Event(models.Model):
-    title = models.CharField(max_length=50)
+    title = models.CharField(max_length=50, unique=True)
     status = models.BooleanField(
         help_text="green if the event already took place",
         blank=True,
@@ -64,8 +71,10 @@ class Event(models.Model):
     notes = models.TextField(blank=True, null=True)
     date_created = models.DateTimeField(auto_now=True)
     date_updated = models.DateTimeField(auto_now_add=True)
-    support_contact = models.ForeignKey("CustomUser", on_delete=models.SET_NULL, null=True)
-    client = models.ForeignKey("Client", on_delete=models.CASCADE)
+    support_contact = models.ForeignKey("CustomUser",
+                                        on_delete=models.SET_NULL,
+                                        null=True,
+                                        limit_choices_to=Q(user_type=3))    # type 3 is support team
     contract = models.ForeignKey("Contract", on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
@@ -76,7 +85,7 @@ class Event(models.Model):
         super(Event, self).save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.client} event's. Date: {self.event_date}"
+        return self.title
 
 
 class CustomUser(AbstractUser):
@@ -84,7 +93,6 @@ class CustomUser(AbstractUser):
     first_name = models.CharField(max_length=25)
     last_name = models.CharField(max_length=25)
     email = models.EmailField()
-
 
     USER_TYPE_CHOICES = (
         (1, "manage team"),
@@ -118,11 +126,11 @@ class CustomUser(AbstractUser):
         return True
 
 
-
 @receiver(post_save, sender=Event)
 def update_client_status(sender, **kwargs):
     event = kwargs.get("instance")
-    client = event.client
+    contract = event.contract
+    client = contract.client
     # if the client already has an past event, his status
     # won't change.
     if client.client_status != 3:
