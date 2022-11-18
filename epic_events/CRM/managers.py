@@ -1,4 +1,6 @@
 from django.contrib.auth.models import BaseUserManager
+import numpy
+# just to check git works on this project
 
 
 class CustomUserManager(BaseUserManager):
