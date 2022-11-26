@@ -33,7 +33,7 @@ class CustomUserAdmin(UserAdmin):
 
     )
 
-    # for has_wiew_permission, we can keep the default
+    # for the has_wiew_permission, we can keep the default
 
     def has_add_permission(self, request, obj=None):
         """Only managers can add new users.
@@ -66,7 +66,7 @@ class ClientAdmin(admin.ModelAdmin):
         if request.user.user_type == 2:
             if obj is None:
                 form.base_fields["sales_contact"].initial = request.user
-            # if he's not the assigned sale member, he doesn't have access to
+            # if he's not the assigned sale contact, he doesn't have access to
             # the sales contact field, so Django would complain if we try to
             # modify it.
             if obj.sales_contact == request.user:

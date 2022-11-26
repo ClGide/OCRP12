@@ -23,18 +23,18 @@ class Client(models.Model):
     )
 
     client_status = models.PositiveSmallIntegerField(choices=CLIENT_STATUS_CHOICES, default=1)
-    date_created = models.DateTimeField(auto_now=True)
-    date_updated = models.DateTimeField(auto_now_add=True)
+    date_updated = models.DateTimeField(auto_now=True)
+    date_created = models.DateTimeField(auto_now_add=True)
     sales_contact = models.ForeignKey("CustomUser",
                                       on_delete=models.SET_NULL,
                                       null=True,
                                       limit_choices_to=Q(user_type=2))  # type 2 is sales team
 
     class Meta:
-        unique_together = [['first_name', 'last_name']]
+        unique_together = [['first_name', 'last_name', 'email']]
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return f"{self.first_name} {self.last_name} {self.email}"
 
 
 class Contract(models.Model):
@@ -42,8 +42,8 @@ class Contract(models.Model):
     signed = models.BooleanField(help_text="tick if the contract is signed")
     amount = models.FloatField()
     payment_due = models.FloatField()
-    date_created = models.DateTimeField(auto_now=True)
-    date_updated = models.DateTimeField(auto_now_add=True)
+    date_updated = models.DateTimeField(auto_now=True)
+    date_created = models.DateTimeField(auto_now_add=True)
     sales_contact = models.ForeignKey("CustomUser",
                                       on_delete=models.SET_NULL,
                                       null=True,
@@ -69,8 +69,8 @@ class Event(models.Model):
     attendees = models.IntegerField()
     event_date = models.DateTimeField()
     notes = models.TextField(blank=True, null=True)
-    date_created = models.DateTimeField(auto_now=True)
-    date_updated = models.DateTimeField(auto_now_add=True)
+    date_updated = models.DateTimeField(auto_now=True)
+    date_created = models.DateTimeField(auto_now_add=True)
     support_contact = models.ForeignKey("CustomUser",
                                         on_delete=models.SET_NULL,
                                         null=True,
@@ -95,7 +95,7 @@ class CustomUser(AbstractUser):
     email = models.EmailField()
 
     USER_TYPE_CHOICES = (
-        (1, "manage team"),
+        (1, "management team"),
         (2, "sales team"),
         (3, "support team")
     )
