@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, ReadOnlyPasswordHashField
 
 from .models import *
-from django.forms import ModelForm, CharField, PasswordInput
+from django.forms import CharField, PasswordInput
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -11,7 +11,8 @@ class CustomUserCreationForm(UserCreationForm):
     password2 = CharField(label='Password confirmation', widget=PasswordInput)
 
     class Meta(UserCreationForm.Meta):
-        model = get_user_model()
+        model = get_user_model()    # this is the most important line. Without it, Django wouldn't use your custom
+                                    # user fields in the form
         fields = ["username", "password",
                   "user_type", "first_name",
                   "last_name", "email", "phone"]
@@ -35,7 +36,8 @@ class CustomUserChangeForm(UserChangeForm):
     password = ReadOnlyPasswordHashField()
 
     class Meta(UserChangeForm.Meta):
-        model = get_user_model()
+        model = get_user_model()    # this is the most important line. Without it, Django wouldn't use your custom
+                                    # user fields in the form
         fields = ["username", "password",
                   "user_type", "first_name",
                   "last_name", "email", "phone"]

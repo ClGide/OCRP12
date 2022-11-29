@@ -28,7 +28,6 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -36,8 +35,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'CRM',
-    'django_extensions'
+    'rest_framework',
+    'epic_events.CRM',
+    'django_extensions',
+    'epic_events.CRM_api'
 ]
 
 MIDDLEWARE = [
@@ -50,7 +51,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'epic_events.urls'
+ROOT_URLCONF = 'epic_events.epic_events.urls'
 
 TEMPLATES = [
     {
@@ -68,7 +69,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'epic_events.wsgi.application'
+WSGI_APPLICATION = 'epic_events.epic_events.wsgi.application'
 
 
 # Database
@@ -76,9 +77,9 @@ WSGI_APPLICATION = 'epic_events.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',
-        'USER': 'django',
+        'USER': 'postgres',
         'PASSWORD': 'supersaiyan',
         'HOST': '',
         'PORT': ''
