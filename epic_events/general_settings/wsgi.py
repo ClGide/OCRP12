@@ -1,5 +1,5 @@
 """
-WSGI config for epic_events project.
+WSGI config for general_settings project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,6 +11,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'epic_events.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'general_settings.settings')
 
 application = get_wsgi_application()
