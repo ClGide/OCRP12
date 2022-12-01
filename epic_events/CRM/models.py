@@ -31,7 +31,7 @@ class Client(models.Model):
                                       limit_choices_to=Q(user_type=2))  # type 2 is sales team
 
     class Meta:
-        unique_together = [['first_name', 'last_name', 'email']]
+        unique_together = [['first_name', 'last_name']]
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} {self.email}"

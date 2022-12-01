@@ -6,6 +6,42 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.generics import CreateAPIView
 from rest_framework.viewsets import GenericViewSet
+from rest_framework.exceptions import PermissionDenied
+
+
+class ClientViewSet(GenericViewSet):
+    serializer_class = ClientSerializer
+    http_method_names = ["get", "post", "put", "delete"]
+
+    def update(self, request, *args, **kwargs):
+        client_last_name = kwargs["last_name"]
+        client_first_name = kwargs["first_name"]
+        client = Client.objects.filter(last_name=client_last_name,
+                                       first_name=client_first_name).get()
+
+        if request.user.user_type == 1:
+            # if the user is a manager, he has edit access to all users.
+            serializer = self.serializer_class(client,
+                                               data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.user.user_type == 2:
+            # if the user is a salesmen, he only has edit access to the clients he's
+            # assigned to.
+            salesman_clients = Client.objects.filter(sales_contact_id=request.user.id)
+            if client in salesman_clients:
+                serializer = self.serializer_class(client,
+                                                   data=request.data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                return PermissionDenied
+        elif request.user.user_type == 3:
+            # if the user is a support team member, he have edit access to no clients.
+            # some permission denial
+            return PermissionDenied
 
 
 class CreateClientView(CreateAPIView):
@@ -55,24 +91,3 @@ class EventView(APIView):
 
 
 
-
-class ClientViewSet(GenericViewSet):
-    serializer_class = ClientSerializer
-    http_method_names = ["get", "post", "put", "delete"]
-
-    def update(self, request, *args, **kwargs):
-        if request.user.user_type == 1:
-            # if the user is a manager, he has access to all users.
-            clients = Client.objects.all()
-            serializer = ClientSerializer(clients, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        elif request.user.user_type == 2:
-            # if the user is a salesmen, he only has access to the clients he's
-            # assigned to.
-            clients = Client.objects.filter(sales_contact_id=request.user.id)
-            serializer = ClientSerializer(clients, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            # if the user is a support team member, he doesn'
-            # some permission denial
-            return
