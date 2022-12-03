@@ -36,6 +36,17 @@ class Client(models.Model):
     def __str__(self):
         return f"{self.first_name} {self.last_name} {self.email}"
 
+    def clean(self):
+        """first name and last name shouldn't contain spaces."""
+        if " " in self.first_name:
+            raise ValidationError
+        if " " in self.last_name:
+            raise ValidationError
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
 
 class Contract(models.Model):
     title = models.CharField(max_length=50, unique=True, help_text="do not use special characters")

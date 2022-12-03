@@ -1,13 +1,73 @@
 from django.db.models import QuerySet
 from rest_framework.views import APIView
 from rest_framework import permissions
-from .serializers import ClientSerializer, EventSerializer, ContractSerializer
+from .serializers import CustomUserSerializer, ClientSerializer, EventSerializer, ContractSerializer
 from epic_events.CRM.models import Client, Event, Contract, CustomUser
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.generics import CreateAPIView
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.exceptions import PermissionDenied
+
+
+class CustomUserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        users = CustomUser.objects.all()
+        serializer = CustomUserSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CreateCustomUserView(CreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CustomUserSerializer
+    http_method_names = ["post"]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        headers = self.get_success_headers(serializer.data)
+
+        return Response(serializer.data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers)
+
+
+class CustomUserViewSet(GenericViewSet):
+    serializer_class = CustomUserSerializer
+    http_method_names = ["put", "delete"]
+
+    def update(self, request, *args, **kwargs):
+        username = kwargs["username"]
+        user = CustomUser.objects.get(username=username)
+
+        if request.user.user_type == 1:
+            # if the user is a manager, he has edit access to all users.
+            serializer = self.serializer_class(user,
+                                               data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.user.user_type in [2, 3]:
+            # if the user is in the sales or support team, he has no edit access to users.
+            return PermissionDenied
+
+    def destroy(self, request, *args, **kwargs) -> Response:
+        """
+        Retrieves the requested user, makes sure the user has
+        delete authorization and then performs deletion.
+        """
+        username = kwargs["username"]
+        user = CustomUser.objects.get(username=username)
+
+        if request.user.user_type == 1:
+            # if the user is in the management team, he can delete any client
+            user.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        elif request.user.user_type in [2, 3]:
+            return PermissionDenied
 
 
 class ClientView(APIView):
@@ -52,7 +112,12 @@ class ClientViewSet(GenericViewSet):
         if request.user.user_type == 1:
             # if the user is a manager, he has edit access to all clients.
             serializer = self.serializer_class(client,
-                                               data=request.data)
+                                               data=request.data,
+                                               partial=True)
+            first_name, last_name = request.data["sales_contact"].split(" ")
+            sales_contact = CustomUser.objects.get(first_name=first_name,
+                                                   last_name=last_name)
+            serializer.data["sales_contact"] = sales_contact.id
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)

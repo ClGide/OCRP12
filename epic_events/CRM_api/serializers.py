@@ -2,6 +2,13 @@ from rest_framework import serializers
 from ..CRM.models import CustomUser, Contract, Event, Client
 
 
+class CustomUserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CustomUser
+        fields = ["username", "first_name", "last_name", "email", "user_type", "phone"]
+
+
 class ClientSerializer(serializers.ModelSerializer):
 
     class Meta:
