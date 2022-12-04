@@ -32,7 +32,7 @@ urlpatterns = [
     path('contract/create', CreateContractView.as_view()),
 
     # trailing slash is needed OR set APPEND_SLASH=False in settings
-    path('contract/<slug:contract_title>', ContractViewSet.as_view({
+    path('contract/<slug:contract_title>/', ContractViewSet.as_view({
         "put": "update",
         "delete": "destroy"
     })),
@@ -42,7 +42,7 @@ urlpatterns = [
     path('event/create', CreateEventView.as_view()),
 
     # trailing slash is needed OR set APPEND_SLASH=False in settings
-    path('event/<slug:event_title>', EventViewSet.as_view({
+    path('event/<slug:event_title>/', EventViewSet.as_view({
         "put": "update",
         "delete": "destroy"
     })),

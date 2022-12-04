@@ -77,6 +77,11 @@ class ClientView(APIView):
         # any authenticated user has read access to all clients.
         clients = Client.objects.all()
         serializer = ClientSerializer(clients, many=True)
+        for client in serializer.data:
+            sales_contact_id = client["sales_contact"]
+            if sales_contact_id:
+                sales_contact = CustomUser.objects.get(id=sales_contact_id)
+                client["sales_contact"] = sales_contact.username
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -114,16 +119,15 @@ class ClientViewSet(GenericViewSet):
             serializer = self.serializer_class(client,
                                                data=request.data,
                                                partial=True)
-            first_name, last_name = request.data["sales_contact"].split(" ")
-            sales_contact = CustomUser.objects.get(first_name=first_name,
-                                                   last_name=last_name)
-            serializer.data["sales_contact"] = sales_contact.id
+            sales_contact_username = request.data["sales_contact"]
+            sales_contact = CustomUser.objects.get(username=sales_contact_username)
+            serializer.initial_data["sales_contact"] = sales_contact.id
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         elif request.user.user_type == 2:
             # if the user is a salesmen, he only has edit access to the clients he's
-            # assigned to.
+            # assigned to. And he cannot reassign the sales contact.
             salesman_clients = Client.objects.filter(sales_contact_id=request.user.id)
             if client in salesman_clients:
                 serializer = self.serializer_class(client,
@@ -142,10 +146,10 @@ class ClientViewSet(GenericViewSet):
         Retrieves the requested client, makes sure the user has
         delete authorization and then performs deletion.
         """
-        client_last_name = kwargs["last_name"]
         client_first_name = kwargs["first_name"]
-        client = Client.objects.get(last_name=client_last_name,
-                                    first_name=client_first_name)
+        client_last_name = kwargs["last_name"]
+        client = Client.objects.get(first_name=client_first_name,
+                                    last_name=client_last_name)
         if request.user.user_type == 1:
             # if the user is in the management team, he can delete any client
             client.delete()
@@ -167,6 +171,12 @@ class ContractView(APIView):
         # any authenticated user has read access to all contracts.
         contracts = Contract.objects.all()
         serializer = ContractSerializer(contracts, many=True)
+        for contract in serializer.data:
+            if contract["sales_contact"]:
+                sales_contact = CustomUser.objects.get(id=contract["sales_contact"])
+                contract["sales_contract"] = sales_contact.username
+            client = Client.objects.get(id=contract["client"])
+            contract["client"] = f"{client.first_name} {client.last_name}"
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -177,6 +187,13 @@ class CreateContractView(CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+        first_name, last_name = request.data["client"].split(" ")
+        client = Client.objects.get(first_name=first_name,
+                                    last_name=last_name)
+        serializer.initial_data["client"] = client.id
+        sales_contact_username = request.data["sales_contact"]
+        sales_contact = CustomUser.objects.get(username=sales_contact_username)
+        serializer.initial_data["sales_contact"] = sales_contact.id
         serializer.is_valid(raise_exception=True)
         serializer.save()
         headers = self.get_success_headers(serializer.data)
@@ -197,16 +214,29 @@ class ContractViewSet(GenericViewSet):
         if request.user.user_type == 1:
             # if the user is a manager, he has edit access to all contracts.
             serializer = self.serializer_class(contract,
-                                               data=request.data)
+                                               data=request.data,
+                                               partial=True)
+            first_name, last_name = request.data["sales_contact"].split(" ")
+            sales_contact = CustomUser.objects.get(first_name=first_name,
+                                                   last_name=last_name)
+            serializer.initial_data["sales_contact"] = sales_contact.id
+            client_username = request.data["client"]
+            client = Client.objects.get(username=client_username)
+            serializer.initial_data["client"] = client.id
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         elif request.user.user_type == 2:
-            # if the user is a salesmen, he only has edit access to his client's contracts
+            # if the user is a salesmen, he only has edit access to his client's contracts.
+            # And he cannot change the sales_contact attribute.
             salesman_clients = Client.objects.filter(sales_contact=request.user.id)
             if contract.client in salesman_clients:
                 serializer = self.serializer_class(contract,
-                                                   data=request.data)
+                                                   data=request.data,
+                                                   partial=True)
+                client_username = request.data["client"]
+                client = Client.objects.get(username=client_username)
+                serializer.initial_data["client"] = client.id
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
@@ -246,6 +276,14 @@ class EventView(APIView):
         # any authenticated user has read access to all events.
         events = Event.objects.all()
         serializer = EventSerializer(events, many=True)
+        for event in serializer.data:
+            if event["support_contact"]:
+                support_contact_id = event["support_contact"]
+                support_contact = CustomUser.objects.get(id=support_contact_id)
+                event["support_contact"] = support_contact.username
+            contract_id = event["contract"]
+            contract = Contract.objects.get(id=contract_id)
+            event["contract"] = contract.title
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -256,6 +294,12 @@ class CreateEventView(CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+        support_contact_username = request.data["support_contact"]
+        support_contact = CustomUser.objects.get(username=support_contact_username)
+        serializer.initial_data["support_contact"] = support_contact.id
+        contract_title = request.data["contract"]
+        contract = Contract.objects.get(title=contract_title)
+        serializer.initial_data["contract"] = contract.id
         serializer.is_valid(raise_exception=True)
         serializer.save()
         headers = self.get_success_headers(serializer.data)
@@ -276,7 +320,14 @@ class EventViewSet(GenericViewSet):
         if request.user.user_type == 1:
             # if the user is a manager, he has edit access to all events.
             serializer = self.serializer_class(event,
-                                               data=request.data)
+                                               data=request.data,
+                                               partial=True)
+            contract_title = serializer.initial_data["contract"]
+            contract = Contract.objects.get(title=contract_title)
+            serializer.initial_data["contract"] = contract.id
+            support_contact_username = serializer.initial_data["support_contact"]
+            support_contact = CustomUser.objects.get(username=support_contact_username)
+            serializer.initial_data["support_contact"] = support_contact.id
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -287,6 +338,12 @@ class EventViewSet(GenericViewSet):
             if client_event in salesman_clients:
                 serializer = self.serializer_class(event,
                                                    data=request.data)
+                contract_title = serializer.initial_data["contract"]
+                contract = Contract.objects.get(title=contract_title)
+                serializer.initial_data["contract"] = contract.id
+                support_contact_username = serializer.initial_data["support_contact"]
+                support_contact = CustomUser.objects.get(username=support_contact_username)
+                serializer.initial_data["support_contact"] = support_contact.id
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
@@ -323,7 +380,4 @@ class EventViewSet(GenericViewSet):
         elif request.user.user_type == 3:
             # if the user is in the support team member, he cannot delete events.
             return PermissionDenied
-
-
-
 
