@@ -15,8 +15,11 @@ class CustomUserView(APIView):
 
     def get(self, request, *args, **kwargs):
         users = CustomUser.objects.all()
-        serializer = CustomUserSerializer(users, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        if request.user.user_type == 1:
+            serializer = CustomUserSerializer(users, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.user.user_type in [2, 3]:
+            raise PermissionDenied("Only manager can access other users data")
 
 
 class CreateCustomUserView(CreateAPIView):
@@ -25,17 +28,21 @@ class CreateCustomUserView(CreateAPIView):
     http_method_names = ["post"]
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        headers = self.get_success_headers(serializer.data)
+        if request.user.user_type == 1:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            headers = self.get_success_headers(serializer.data)
 
-        return Response(serializer.data,
-                        status=status.HTTP_201_CREATED,
-                        headers=headers)
+            return Response(serializer.data,
+                            status=status.HTTP_201_CREATED,
+                            headers=headers)
+        elif request.user.user_type in [2, 3]:
+            raise PermissionDenied("Only manager can create users")
 
 
 class CustomUserViewSet(GenericViewSet):
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = CustomUserSerializer
     http_method_names = ["put", "delete"]
 
@@ -43,18 +50,22 @@ class CustomUserViewSet(GenericViewSet):
         username = kwargs["username"]
         user = CustomUser.objects.get(username=username)
 
-        if request.user.user_type == 1:
+        if request.user.user_type == 1 or username == request.user.username:
             # if the user is a manager, he has edit access to all users.
+            # Moreover, any user can edit his own data.
             serializer = self.serializer_class(user,
-                                               data=request.data)
+                                               data=request.data,
+                                               partial=True)
+            if request.user.user_type in [2, 3] and request.user.user_type != serializer.initial_data["user_type"]:
+                raise PermissionDenied("only managers can change the user_type")
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         elif request.user.user_type in [2, 3]:
-            # if the user is in the sales or support team, he has no edit access to users.
-            return PermissionDenied
+            # if the user is in the sales or support team, he has no edit access to other users.
+            raise PermissionDenied("Only managers can edit other users data")
 
-    def destroy(self, request, *args, **kwargs) -> Response:
+    def destroy(self, request, *args, **kwargs):
         """
         Retrieves the requested user, makes sure the user has
         delete authorization and then performs deletion.
@@ -67,7 +78,7 @@ class CustomUserViewSet(GenericViewSet):
             user.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         elif request.user.user_type in [2, 3]:
-            return PermissionDenied
+            raise PermissionDenied("Only managers can delete other users")
 
 
 class ClientView(APIView):
