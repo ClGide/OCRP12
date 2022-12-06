@@ -47,6 +47,13 @@ class Client(models.Model):
         self.clean()
         super().save(*args, **kwargs)
 
+    def validate(self, data):
+        if hasattr(self, 'initial_data'):
+            unknown_keys = set(self.initial_data.keys()) - set(self.fields.keys())
+            if unknown_keys:
+                raise ValidationError("Got unknown fields: {}".format(unknown_keys))
+        return data
+
 
 class Contract(models.Model):
     title = models.CharField(max_length=50, unique=True, help_text="do not use special characters")
@@ -80,6 +87,13 @@ class Contract(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
+
+    def validate(self, data):
+        if hasattr(self, 'initial_data'):
+            unknown_keys = set(self.initial_data.keys()) - set(self.fields.keys())
+            if unknown_keys:
+                raise ValidationError("Got unknown fields: {}".format(unknown_keys))
+        return data
 
     def __str__(self):
         return self.title
@@ -124,6 +138,13 @@ class Event(models.Model):
         self.clean()
         super(Event, self).save(*args, **kwargs)
 
+    def validate(self, data):
+        if hasattr(self, 'initial_data'):
+            unknown_keys = set(self.initial_data.keys()) - set(self.fields.keys())
+            if unknown_keys:
+                raise ValidationError("Got unknown fields: {}".format(unknown_keys))
+        return data
+
     def __str__(self):
         return self.title
 
@@ -156,14 +177,21 @@ class CustomUser(AbstractUser):
         if self.user_type == 1:
             self.is_superuser = True
 
-    def __str__(self):
-        return self.username
-
     def has_perm(self, perm, obj=None):
         return True
 
     def has_module_perms(self, app_label):
         return True
+
+    def validate(self, data):
+        if hasattr(self, 'initial_data'):
+            unknown_keys = set(self.initial_data.keys()) - set(self.fields.keys())
+            if unknown_keys:
+                raise ValidationError("Got unknown fields: {}".format(unknown_keys))
+        return data
+
+    def __str__(self):
+        return self.username
 
     class Meta:
         constraints = [models.UniqueConstraint('username', name="username_unique")]
