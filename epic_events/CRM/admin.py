@@ -1,12 +1,16 @@
+"""Defines classes controlling the access from the admin site to the models."""
+
 from django.contrib import admin
+from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 
-from .forms import *
-from .models import *
+from .forms import CustomUserCreationForm, CustomUserChangeForm
+from .models import Client, Contract, Event
 
 
 class CustomUserAdmin(UserAdmin):
+    """Controls how the User model is accessed in the admin site."""
     form = CustomUserChangeForm
     add_form = CustomUserCreationForm
 
@@ -33,22 +37,21 @@ class CustomUserAdmin(UserAdmin):
     )
 
     # for the has_wiew_permission, we can keep the default
-
-    def has_add_permission(self, request, obj=None):
+    def has_add_permission(self, request, *args):
         """Only managers can add new users.
         """
         if request.user.user_type == 1:
             return True
         return False
 
-    def has_change_permission(self, request, obj=None):
+    def has_change_permission(self, request, *args):
         """Only managers can change users.
         """
         if request.user.user_type == 1:
             return True
         return False
 
-    def has_delete_permission(self, request, obj=None):
+    def has_delete_permission(self, request, *args):
         """Only managers can delete other users.
         """
         if request.user.user_type == 1:
@@ -57,11 +60,12 @@ class CustomUserAdmin(UserAdmin):
 
 
 class ClientAdmin(admin.ModelAdmin):
+    """Controls how the Client model is accessed in the admin site."""
     model = Client
     readonly_fields = ["client_status"]
 
-    def get_form(self, request, obj=None, **kwargs):
-        form = super(ClientAdmin, self).get_form(request, obj, **kwargs)
+    def get_form(self, request, obj=None, *args, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
         if request.user.user_type == 2:
             if obj is None:
                 form.base_fields["sales_contact"].initial = request.user
@@ -72,7 +76,7 @@ class ClientAdmin(admin.ModelAdmin):
                 form.base_fields["sales_contact"].disabled = True
         return form
 
-    def has_add_permission(self, request, obj=None):
+    def has_add_permission(self, request, *args):
         """Only managers and member of the sales team
         can add new clients.
         """
@@ -92,7 +96,7 @@ class ClientAdmin(admin.ModelAdmin):
                 return True
         return False
 
-    def has_delete_permission(self, request, obj=None):
+    def has_delete_permission(self, request, *args):
         """Only managers can delete other clients.
         """
         if request.user.user_type == 1:
@@ -101,6 +105,7 @@ class ClientAdmin(admin.ModelAdmin):
 
 
 class EventAdmin(admin.ModelAdmin):
+    """Controls how the Event model is accessed in the admin site."""
     model = Event
     readonly_fields = ["status"]
 
@@ -112,8 +117,8 @@ class EventAdmin(admin.ModelAdmin):
                 kwargs["queryset"] = Contract.objects.filter(sales_contact=request.user)
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
-    def get_form(self, request, obj=None, **kwargs):
-        form = super(EventAdmin, self).get_form(request, obj, **kwargs)
+    def get_form(self, request, obj=None, *args, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
         if request.user.user_type == 3:
             # if he's not the assigned support member, he doesn't have access to
             # the support contact field, so Django would complain if we try to
@@ -122,7 +127,7 @@ class EventAdmin(admin.ModelAdmin):
                 form.base_fields["support_contact"].disabled = True
         return form
 
-    def has_add_permission(self, request, obj=None):
+    def has_add_permission(self, request, *args):
         """Only managers and member of the sales team
         can add new events.
         """
@@ -149,7 +154,7 @@ class EventAdmin(admin.ModelAdmin):
                 return True
         return False
 
-    def has_delete_permission(self, request, obj=None):
+    def has_delete_permission(self, request, *args):
         """Only managers can delete other events.
         """
         if request.user.user_type == 1:
@@ -158,10 +163,11 @@ class EventAdmin(admin.ModelAdmin):
 
 
 class ContractAdmin(admin.ModelAdmin):
+    """Controls how the Contract model is accessed in the admin site."""
     model = Contract
 
     def get_form(self, request, obj=None, **kwargs):
-        form = super(ContractAdmin, self).get_form(request, obj, **kwargs)
+        form = super().get_form(request, obj, **kwargs)
         if request.user.user_type == 2:
             if obj is None:
                 form.base_fields["sales_contact"].initial = request.user
@@ -172,7 +178,7 @@ class ContractAdmin(admin.ModelAdmin):
                 form.base_fields["sales_contact"].disabled = True
         return form
 
-    def has_add_permission(self, request, obj=None):
+    def has_add_permission(self, request, *args):
         """Only managers and member of the sales team
         can add new contracts.
         """
@@ -192,7 +198,7 @@ class ContractAdmin(admin.ModelAdmin):
                 return True
         return False
 
-    def has_delete_permission(self, request, obj=None):
+    def has_delete_permission(self, request, *args):
         """Only managers can delete other admins.
         """
         if request.user.user_type == 1:
@@ -205,4 +211,3 @@ admin.site.register(Client, ClientAdmin)
 admin.site.register(Contract, ContractAdmin)
 admin.site.register(Event, EventAdmin)
 admin.site.unregister(Group)
-

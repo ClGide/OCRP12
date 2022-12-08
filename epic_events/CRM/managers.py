@@ -1,8 +1,20 @@
+"""We use a custom User model. Thus, we have to specify a custom Manager"""
+
 from django.contrib.auth.models import BaseUserManager
 
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, username, password, email, first_name, last_name, user_type, **extra_fields):
+    """Specifies required fields and values to create an instance of the User model.
+
+    A superuser is an instance of the User model just as any other user created with the
+    create_user method. The is_superuser is the main difference. It gives elevated permissions
+    to superusers.
+    """
+    def create_user(self, username, password, email,
+                    first_name, last_name, user_type, **extra_fields):
+        """Raises a Value Error if any of the is_staff, username, email,
+        first_name, last_name or user_type isn't set. Then uses the received
+        data to create an User instance."""
         extra_fields.setdefault("is_staff", True)
         if extra_fields.get("is_staff") is not True:
             raise ValueError("all users must have is_staff=True.")
@@ -25,7 +37,11 @@ class CustomUserManager(BaseUserManager):
         user.save()
         return user
 
-    def create_superuser(self, username, password, email, first_name, last_name, user_type, **extra_fields):
+    def create_superuser(self, username, password, email,
+                         first_name, last_name, user_type, **extra_fields):
+        """Raises a ValueError if the is_superuser isn't set. Also raises a ValueError if any
+        of the field checked by self.create_user isn't set. Then creates a User instance with
+        the received data."""
         extra_fields.setdefault("is_superuser", True)
         if extra_fields.get("is_super") is not True:
             raise ValueError("Superuser must have is_superuser=True.")

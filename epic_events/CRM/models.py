@@ -1,15 +1,23 @@
-from django.db import models
+"""Defines four models used in both the CRM and CRM_api app."""
+
+
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
+from django.db import models
+from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.core.validators import RegexValidator
-from .managers import CustomUserManager
 from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.db.models import Q
+
+from .managers import CustomUserManager
 
 
 class Client(models.Model):
+    """There's a unique together constraint on the first_name and last_name
+    fields. It's thus encouraged to make your queries based on those two
+    fields.
+    You cannot use whitespaces in the first_name or last_name."""
     first_name = models.CharField(max_length=25)
     last_name = models.CharField(max_length=25)
     email = models.EmailField(max_length=100)
@@ -47,15 +55,10 @@ class Client(models.Model):
         self.clean()
         super().save(*args, **kwargs)
 
-    def validate(self, data):
-        if hasattr(self, 'initial_data'):
-            unknown_keys = set(self.initial_data.keys()) - set(self.fields.keys())
-            if unknown_keys:
-                raise ValidationError("Got unknown fields: {}".format(unknown_keys))
-        return data
-
 
 class Contract(models.Model):
+    """The title field is unique. It's thus encouraged to make queries based on it. Because
+     this field is used in the URL, it can't contain special characters."""
     title = models.CharField(max_length=50, unique=True, help_text="do not use special characters")
     signed = models.BooleanField(help_text="tick if the contract is signed")
     amount = models.FloatField()
@@ -69,8 +72,9 @@ class Contract(models.Model):
     client = models.ForeignKey("Client", on_delete=models.CASCADE)
 
     def clean(self):
-        """checks that all char can fit in a URL. If there are special char, raises a ValidationError
-         as the user knows he shouldn't use such char in the title. If there are spaces, replaces them by '_'."""
+        """checks that all char can fit in a URL. If there are special char,
+        raises a ValidationError as the user knows he shouldn't use such char in the title.
+        If there are spaces, replaces them by '_'."""
         validated_title = ""
         for ch in str(self.title):
             if not ch.isalnum() and ch != " ":
@@ -88,18 +92,13 @@ class Contract(models.Model):
         self.clean()
         super().save(*args, **kwargs)
 
-    def validate(self, data):
-        if hasattr(self, 'initial_data'):
-            unknown_keys = set(self.initial_data.keys()) - set(self.fields.keys())
-            if unknown_keys:
-                raise ValidationError("Got unknown fields: {}".format(unknown_keys))
-        return data
-
     def __str__(self):
         return self.title
 
 
 class Event(models.Model):
+    """The title field is unique. It's thus encouraged to make queries based on it. Because
+     this field is used in the URL, it can't contain special characters."""
     title = models.CharField(max_length=50, unique=True)
     status = models.BooleanField(
         help_text="green if the event already took place",
@@ -114,12 +113,13 @@ class Event(models.Model):
     support_contact = models.ForeignKey("CustomUser",
                                         on_delete=models.SET_NULL,
                                         null=True,
-                                        limit_choices_to=Q(user_type=3))    # type 3 is support team
+                                        limit_choices_to=Q(user_type=3))  # type 3 is support team
     contract = models.ForeignKey("Contract", on_delete=models.CASCADE)
 
     def clean(self):
-        """checks that all char can fit in a URL. If there are special char, raises a ValidationError
-         as the user knows he shouldn't use such char in the title. If there are spaces, replaces them by '_'."""
+        """checks that all char can fit in a URL. If there are special char,
+        raises a ValidationError as the user knows he shouldn't use such char in the title.
+        If there are spaces, replaces them by '_'."""
         validated_title = ""
         for ch in str(self.title):
             if not ch.isalnum() and ch != " ":
@@ -131,26 +131,21 @@ class Event(models.Model):
         self.title = validated_title
 
     def save(self, *args, **kwargs):
+        """The field status is automatically updated everytime the object is saved."""
         if self.event_date < timezone.now():
             self.status = True
         else:
             self.status = False
         self.clean()
-        super(Event, self).save(*args, **kwargs)
-
-    def validate(self, data):
-        if hasattr(self, 'initial_data'):
-            unknown_keys = set(self.initial_data.keys()) - set(self.fields.keys())
-            if unknown_keys:
-                raise ValidationError("Got unknown fields: {}".format(unknown_keys))
-        return data
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title
 
 
 class CustomUser(AbstractUser):
-    # username field is required and inherited.
+    """username field is required and inherited. There's also a unique constraint
+    on that field. It's thus encouraged to make queries based on that field."""
     first_name = models.CharField(max_length=25)
     last_name = models.CharField(max_length=25)
     email = models.EmailField()
@@ -172,37 +167,37 @@ class CustomUser(AbstractUser):
     phone = models.CharField(validators=[phone_regex], max_length=17, blank=True, null=True)
     objects = CustomUserManager()
 
+    class Meta:
+        constraints = [models.UniqueConstraint('username', name="username_unique")]
+
     def clean(self):
+        """Ensures all users have the is_staff permission needed to access the admin interface. Also
+        ensures all managers have superuser elevated permissions"""
         self.is_staff = True
         if self.user_type == 1:
             self.is_superuser = True
 
     def has_perm(self, perm, obj=None):
+        """Must return True if the User has the specified permission 'perm'. We always return
+        True because permissions are checked in CRM_api/views.py and CRM/admin.py."""
         return True
 
     def has_module_perms(self, app_label):
+        """Must return True if the User has any permission in the package 'app_label'."""
         return True
-
-    def validate(self, data):
-        if hasattr(self, 'initial_data'):
-            unknown_keys = set(self.initial_data.keys()) - set(self.fields.keys())
-            if unknown_keys:
-                raise ValidationError("Got unknown fields: {}".format(unknown_keys))
-        return data
 
     def __str__(self):
         return self.username
 
-    class Meta:
-        constraints = [models.UniqueConstraint('username', name="username_unique")]
-
 
 @receiver(post_save, sender=Event)
 def update_client_status(sender, **kwargs):
+    """Registers on the client instance the fact that he has or not at
+    least one upcoming/past event."""
     event = kwargs.get("instance")
     contract = event.contract
     client = contract.client
-    # if the client already has an past event, his status
+    # if the client already has a past event, his status
     # won't change.
     if client.client_status != 3:
         if client.client_status == 2:
