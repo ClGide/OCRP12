@@ -47,9 +47,9 @@ class Client(models.Model):
     def clean(self):
         """first name and last name shouldn't contain spaces."""
         if " " in self.first_name:
-            raise ValidationError
+            raise ValidationError("there should be no spaces in the first name")
         if " " in self.last_name:
-            raise ValidationError
+            raise ValidationError("there should be no spaces in the last name")
 
     def save(self, *args, **kwargs):
         self.clean()
