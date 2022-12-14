@@ -1,4 +1,4 @@
-"""For each of the four models defined in CRM/models.py the module defines three views.
+"""For each of the four models defined in crm/models.py the module defines three views.
 
 One view is responsible for the GET request, a second one for the POST request
 and a third one for both the PUT and DELETE request. In other words, this module
@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
-from epic_events.CRM.models import Client, Event, Contract, CustomUser
+from epic_events.crm.models import Client, Event, Contract, CustomUser
 from .serializers import CustomUserSerializer, ClientSerializer, EventSerializer, ContractSerializer
 
 
@@ -125,7 +125,7 @@ class CreateClientView(CreateAPIView):
     http_method_names = ["post"]
 
     def create(self, request, *args, **kwargs):
-        """Only managers and salesmen can add new clients to the CRM. Salesmen can edit only their
+        """Only managers and salesmen can add new clients to the crm. Salesmen can edit only their
         clients."""
         if request.user.user_type in [1, 2]:
             if request.user.user_type == 2 and request.user.username != request.data["sales_contact"]:
@@ -141,7 +141,7 @@ class CreateClientView(CreateAPIView):
             serializer.save()
             headers = self.get_success_headers(serializer.data)
         elif request.user.user_type == 3:
-            raise PermissionDenied("only managers and salesmen can add new users to the CRM")
+            raise PermissionDenied("only managers and salesmen can add new users to the crm")
         return Response(serializer.data,
                         status=status.HTTP_201_CREATED,
                         headers=headers)

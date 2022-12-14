@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class CrmConfig(AppConfig):
+class CrmApiConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'epic_events.CRM'
+    name = 'epic_events.api'

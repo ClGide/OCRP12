@@ -1,6 +1,6 @@
 """Defines a list of URLs that need to be prepended by 127.0.0.1:8000/ while in
 development. Each path takes two args, a str representing a path and the view
-that handles the requests send to that path. """
+that handles the requests send to that path."""
 
 
 from django.urls import path
@@ -9,7 +9,7 @@ from .views import EventView, EventViewSet, CreateEventView
 from .views import ContractView, ContractViewSet, CreateContractView
 from .views import CustomUserView, CreateCustomUserView, CustomUserViewSet
 
-app_name = "CRM"
+app_name = "crm"
 
 urlpatterns = [
     path('users/view', CustomUserView.as_view()),

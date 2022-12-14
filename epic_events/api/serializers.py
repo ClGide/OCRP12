@@ -7,7 +7,7 @@ example when a GET request is received through the API."""
 
 from rest_framework import serializers
 
-from ..CRM.models import CustomUser, Contract, Event, Client
+from ..crm.models import CustomUser, Contract, Event, Client
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -41,7 +41,7 @@ class EventSerializer(serializers.ModelSerializer):
 
 class ContractSerializer(serializers.ModelSerializer):
     """Convert contract instances into JSON data and vice versa, if the received data
-    is validated."""
+    is validate."""
 
     class Meta:
         model = Contract

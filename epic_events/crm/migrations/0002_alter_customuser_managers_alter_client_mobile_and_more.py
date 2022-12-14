@@ -8,7 +8,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('CRM', '0001_initial'),
+        ('crm', '0001_initial'),
     ]
 
     operations = [
@@ -35,6 +35,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='event',
             name='contract',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='CRM.contract'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='crm.contract'),
         ),
     ]

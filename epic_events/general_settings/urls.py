@@ -19,7 +19,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 
-from epic_events.CRM_api import urls as api_urls
+from epic_events.api import urls as api_urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),

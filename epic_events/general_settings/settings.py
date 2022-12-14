@@ -36,9 +36,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'epic_events.CRM',
+    'epic_events.crm',
     'django_extensions',
-    'epic_events.CRM_api'
+    'epic_events.api'
 ]
 
 MIDDLEWARE = [
@@ -105,7 +105,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-AUTH_USER_MODEL = "CRM.CustomUser"
+AUTH_USER_MODEL = "crm.CustomUser"
 
 
 # Internationalization

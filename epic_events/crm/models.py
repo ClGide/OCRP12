@@ -1,4 +1,4 @@
-"""Defines four models used in both the CRM and CRM_api app."""
+"""Defines four models used in both the crm and api app."""
 
 
 from django.contrib.auth.models import AbstractUser
@@ -179,7 +179,7 @@ class CustomUser(AbstractUser):
 
     def has_perm(self, perm, obj=None):
         """Must return True if the User has the specified permission 'perm'. We always return
-        True because permissions are checked in CRM_api/views.py and CRM/admin.py."""
+        True because permissions are checked in api/views.py and crm/admin.py."""
         return True
 
     def has_module_perms(self, app_label):
